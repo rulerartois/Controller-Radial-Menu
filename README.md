@@ -18,7 +18,7 @@ If you'd like a custom one using a different button configuration made please fe
 
 This will now require some setup on your end.
 
- - Simple download the relevant .exe file (if you don't feel comfortable downloading random .exe's from strangers then I've provided the source code (called controllerRadial.ahk) you can use to check and compile yourself (https://www.autohotkey.com/) or alternatively please don't use it.)
+ - Simply download the relevant .exe file (if you don't feel comfortable downloading random .exe's from strangers then I've provided the source code (called controllerRadial.ahk) you can use to check and compile yourself (https://www.autohotkey.com/) or alternatively just don't use it.)
  - In FFXIV go to Keybind (/keybind) -> Targeting -> Target Member 1 in Party List -> Numpad1
  - Repeat for Numpad2-8
 ![Hotkeys Numpad](https://github.com/user-attachments/assets/183127c8-664d-4d84-8a52-78bc33487b21)
@@ -31,3 +31,5 @@ Add a GUI showing the Octants and where your joystick currently is (and what it'
 Make that window configurable!
 
 Make it configurable via the user so they can change which buttons/joysticks perform the 2 relevant actions
+
+Potentially have a "snapback" that reverts back to the previous target (when LB was held down) that runs the command (/targetlastenemy) since there's no way of reading data from the game.
