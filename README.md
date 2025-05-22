@@ -10,7 +10,7 @@ https://www.youtube.com/watch?v=B6f7q-x4PP4
 
 ## To use:
 
-Download the controllerRadial.exe or other variant you want. Currently there are:
+Download the controllerRadial.exe or other variant you want in the releases https://github.com/rulerartois/Controller-Radial-Menu/releases. Currently there are:
   - controllerRadial.exe which uses the LB to trigger and select where the Right Joystick is currently facing.
   - controllerRadial-L3.exe which uses the L3 button to trigger and select where the Right Joystick is currently facing.
 
