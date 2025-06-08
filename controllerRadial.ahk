@@ -1,3 +1,10 @@
+#NoEnv
+#SingleInstance Force
+SetWorkingDir %A_ScriptDir%  ; Ensures a consistent starting directory.
+#ErrorStdOut 
+#MaxThreads 2
+#MaxThreadsPerHotkey 2
+
 /*  XInput by Lexikos
  *  Requires AutoHotkey 1.1+.
  */
@@ -220,6 +227,8 @@ XInput_Term() {
         DllCall("FreeLibrary","uint",_XInput_hm), _XInput_hm :=_XInput_GetState :=_XInput_SetState :=_XInput_GetCapabilities :=0
 }
 
+
+
 /*
 	Function: Naive_Circle
 	Naively obtains the quadrant the joystick is in
@@ -264,7 +273,7 @@ Naive_Circle_Quadrant(sThumbX, sThumbY){
 
 Tan_Circle_Quadrant(sThumbX, sThumbY) {
 	angle := atan2(sThumbX, sThumbY) * 57.2957795
-	;FileAppend, %angle%`n, C:/Users/D/Downloads/xinput.des
+	
 	;MsgBox % angle
 	return angle
 }
@@ -282,59 +291,103 @@ atan2(y,x) { ; y then x
 
 Braindead_Switch(angle, debug) {
     ;global adjustedAngle
+	selection := 0
     if (angle < 112.5) and (angle > 67.5) {
         ControlSend , , {Numpad1 down}, FINAL FANTASY XIV
+		selection = 1
         Sleep 100
         ControlSend , , {Numpad1 up}, FINAL FANTASY XIV
     }
     else if (angle < 67.5) and (angle > 22.5) {
         ControlSend , , {Numpad2 down}, FINAL FANTASY XIV
+		selection = 2
         Sleep 100
         ControlSend , , {Numpad2 up}, FINAL FANTASY XIV
     }
     else if (angle < 22.5) and (angle > -22.5) {
         ControlSend , , {Numpad3 down}, FINAL FANTASY XIV
+		selection = 3
         Sleep 100
         ControlSend , , {Numpad3 up}, FINAL FANTASY XIV
     }
     else if (angle < -22.5) and (angle > -67.5) {
         ControlSend , , {Numpad4 down}, FINAL FANTASY XIV
+		selection = 4
         Sleep 100
         ControlSend , , {Numpad4 up}, FINAL FANTASY XIV
     }
     else if (angle < -67.5) and (angle > -112.5) {
         ControlSend , , {Numpad5 down}, FINAL FANTASY XIV
+		selection = 5
         Sleep 100
         ControlSend , , {Numpad5 up}, FINAL FANTASY XIV
     }
     else if (angle < -112.5) and (angle > -157.5) {
         ControlSend , , {Numpad6 down}, FINAL FANTASY XIV
+		selection = 6
         Sleep 100
         ControlSend , , {Numpad6 up}, FINAL FANTASY XIV
     }
     else if (angle < -157.5 and angle > -181) or (angle > 157.5 and angle < 181)  {
         ControlSend , , {Numpad7 down}, FINAL FANTASY XIV
+		selection = 7
         Sleep 100
         ControlSend , , {Numpad7 up}, FINAL FANTASY XIV
-    }     
+    }
     else if (angle < 157.5) and (angle > 112.5) {
         ControlSend , , {Numpad8 down}, FINAL FANTASY XIV
+		selection = 8
         Sleep 100
         ControlSend , , {Numpad8 up}, FINAL FANTASY XIV
     }
 	if (debug) {
-		MsgBox, %angle%
+		;MsgBox, %angle%
 	}
+	return selection
 }
 
-;MsgBox, desu
-;adjustedAngle = -22.5
+;OSDColour2 = 0FF0F2
+OSDColour2 = 010101
+
+; Set up GUI
+Gui, pie: +LastFound +AlwaysOnTop -Caption +ToolWindow
+Gui, pie:Default
+Gui, pie:Show, Hide x100 y100 h370 w370
+; TODO: Make it rotatable
+
+Gui, pie:Add, Picture, x0 y0 w370 h370, pieColoured.png
+Gui, pie:Add, Picture, cursor x181 y181, cursor.png ;remember the cursor is 9x9 so the center should be 5
+Gui, pie:Color, %OSDColour2%	
+WinSet, TransColor, %OSDColour2% ; Make all pixels of this color transparent and make the text itself translucent (150)
 ; TODO: XInputEnable, 'GetBatteryInformation and 'GetKeystroke.
+
+Gui, debugWin: +AlwaysOnTop -Caption +ToolWindow
+debug := 0
+if (debug == 1) {
+	Gui, debugWin:Show, x100 y500 h100 w200
+	}
+Gui, debugWin:Add, Text, vDebugData h500 w500, Initialised!
+;Gui, DebugWin:Add, Text, vDeadzone, Deadzone
 XInput_Init()
+
+
+timestamp := A_TickCount
+cachedControllerX := 0
+cachedControllerY := 0
+
+;Set up Config
+;IniWrite, 700, config.ini, GENERAL, duration; TODO: https://www.autohotkey.com/boards/viewtopic.php?t=74585
+IniRead, guiOn, config.ini, GENERAL, guiOn, 1 ;1 is just true in ahk... yeah.
+IniRead, guiDuration, config.ini, GENERAL, guiDuration, 701
+IniRead, deadzone, config.ini, GENERAL, deadzonedValues, 10001
+IniRead, configTriggerButton, config.ini, GENERAL, triggerButton, 256
+
+;TODO: if file does not exist, make it with default values
+
+
 Loop {
-    Loop, 4 {
-        if State := XInput_GetState(A_Index-1) {
-			debug = 0
+	Loop, 4 {
+		if State := XInput_GetState(A_Index-1) {
 			sThumbLX := State.sThumbLX
 			sThumbLY := State.sThumbLY
 			sThumbRX := State.sThumbRX
@@ -345,32 +398,52 @@ Loop {
 			sThumbY := sThumbRY
 			butone := State.wButtons + 0 ;force this to be an int
 			;MsgBox, Butone: %butone% ;uncomment for testing vVv
-
-			If (butone & 256) ;Should work if LShoulder is pressed. Can contain any combination of numbers. 256 is LShoulder. 512 is RShoulder. 64 is L3
-			{
-				if (sThumbX > 10000 or sThumbY > 10000 or sThumbX < -10000 or sThumbY < -10000) ;we don't want deadzoned values
-					{
-					;MsgBox, "We're in"
+			if (butone & configTriggerButton) { ;Should work if LShoulder is pressed. Can contain any combination of numbers. 256 is LShoulder. 512 is RShoulder. 64 is L3. All buttons are currently triggering this...
+				;if (sThumbX > deadzone or sThumbY > deadzone or sThumbX < -deadzone or sThumbY < -deadzone) ;we don't want deadzoned inputs ;old implementatino
+				if (Sqrt(Abs(sThumbX)**2 + Abs(sThumbY)**2) > deadzone) { 
+					if (guiOn = true) {
+						Gui, pie:Show, NA
+					}
+					timestamp := A_TickCount ;TODO: optimisation possible?
+					;MsgBox, %sThumbX%
 					;Naive_Circle_Quadrant(sThumbLX, sThumbLY)
 					x := sThumbY/sThumbX
 					angle := 0
 					angle := Tan_Circle_Quadrant(sThumbRY, sThumbRX)
-					Braindead_Switch(angle, debug)
-					;32768
+					selection := Braindead_Switch(angle, debug) ; -32768 - 32767
+					if (debug = true) {
+						;MsgBox %selection%
+					}
+					if (guiOn = true and cachedControllerX != controllerX and cachedControllerY != controllerY) {
+						controllerX := (sThumbX / 190)   + 175 ;I've done some testing/calibration. In a perfect world this would be X / (180 * scalar) + (180 * scalar) but we live in this one
+						controllerY := -(sThumbY / 190)  + 175
+						GuiControl, debugWin:, DebugData, % controllerX " " controllerY " " selection
+						GuiControl, Move, cursor, % "x" controllerX "y" controllerY
+						cachedControllerX = controllerX
+						cachedControllerY = controllerY
+					}
 					;sThumbLX := State.sThumbLX
 					;String := StrGet(sThumbLX) ;, %MsgBox % Y:%State.sThumbLY%
 					;MsgBox % %sThumbLX% + 0
+
 				}
 			}
-			;If (butone = 16) {
-			;	Exit
-			;}
-			ControlSend , , B down}, testingKeys.txt - Notepad
-            ;LT := State.bLeftTrigger
+			;LT := State.bLeftTrigger
 			; MsgBox % State.bLeftTrigger
-            ;RT := State.bRightTrigger
-            ;XInput_SetState(A_Index-1, LT*257, RT*257)
-        }
-    }
-    Sleep, 20
+			;RT := State.bRightTrigger
+			;XInput_SetState(A_Index-1, LT*257, RT*257)
+		}
+	}
+	Sleep, 5
+	if (guiOn = true) and (debug = false) and (timestamp + guiDuration < A_TickCount) { ;TODO: optimisation needed?, make configurable, maybe fade
+		Gui, pie:Hide
+	}
 }
+
+
+;^x:: ;"there is an implicit return before each hotkey" Lookup Hotkey https://www.autohotkey.com/docs/v1/lib/Hotkey.htm if I care.
+;	ExitApp
+;return	;TODO: Delete on live pls
+;TODO: Split into files
+;TODO: Add IniWriting per configuration option
+;TODO: Add downloading image from github
